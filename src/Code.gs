@@ -103,20 +103,50 @@ function sendEmailReminder(recipients, propertyId) {
 
   if (collectionDays.minDelay !== 1) {
     console.log(`Next collection in ${collectionDays.minDelay} days - skip email.`);
-    return
+    return;
   }
 
-  const htmlBodyDivs = collectionDays.services
-    .sort((a, b) => a.next > b.next ? 1 : -1)
-    .map(service =>
-      `<div style="margin-top: 1em">
-          <h4>${service.sign} - ${service.serviceIcon} ${service.serviceName}</h4>
-          <div>${service.last}</div>
-          <div>Next collection: ${service.next} (${service.nextReadable})</div>
-        </div>`
-    );
+  const sortedServices = collectionDays.services.sort((a, b) => a.next > b.next ? 1 : -1);
 
-  htmlBodyDivs.push(`<div style="margin-top: 2em">Address: <address>${collectionDays.address}</address></div>`);
+  const serviceCards = sortedServices.map(service => `
+    <div style="background-color: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #eef2f6; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+      <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 24px; margin-right: 12px;">${service.serviceIcon}</span>
+        <div style="flex-grow: 1;">
+          <h3 style="margin: 0; font-size: 18px; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${service.serviceName}</h3>
+          <p style="margin: 4px 0 0; font-size: 14px; color: #64748b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Last: ${service.last}</p>
+        </div>
+        <div style="font-size: 20px;">${service.sign}</div>
+      </div>
+      <div style="background-color: ${service.nextReadable === 'tomorrow' ? '#f0fdf4' : '#f8fafc'}; border-radius: 8px; padding: 12px; border: 1px solid ${service.nextReadable === 'tomorrow' ? '#dcfce7' : '#f1f5f9'};">
+        <span style="font-size: 14px; font-weight: 600; color: ${service.nextReadable === 'tomorrow' ? '#166534' : '#475569'}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          Next: ${service.next} (${service.nextReadable})
+        </span>
+      </div>
+    </div>
+  `).join('');
+
+  const htmlBody = `
+    <div style="background-color: #f8fafc; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <div style="margin-bottom: 32px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; color: #0f172a; font-weight: 800;">🗑️ Collection Reminder</h1>
+          <p style="margin: 8px 0 0; color: #64748b; font-size: 16px;">Don't forget to put your bins out!</p>
+        </div>
+        
+        ${serviceCards}
+        
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+          <p style="margin: 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Property Address</p>
+          <p style="margin: 4px 0 0; font-size: 15px; color: #475569; font-style: normal;">${collectionDays.address}</p>
+        </div>
+        
+        <div style="margin-top: 40px; text-align: center;">
+          <p style="margin: 0; font-size: 12px; color: #cbd5e1;">&copy; ${new Date().getFullYear()} Camden Rubbish Scraper</p>
+        </div>
+      </div>
+    </div>
+  `;
 
   const servicesTomorrow = collectionDays.services
     .filter(service => service.nextReadable == 'tomorrow')
@@ -127,12 +157,11 @@ function sendEmailReminder(recipients, propertyId) {
     .map(service => service.serviceIcon);
 
   const hasServicesLater = servicesLater.length > 0;
-
-  const subject = `Trash Collection (✅: ${servicesTomorrow.join('')}${hasServicesLater ? ' - ❌: ' + servicesLater.join('') : ''})`;
+  const subject = `Bin Day: ${servicesTomorrow.join('')}${hasServicesLater ? ' (Next: ' + servicesLater.join('') + ')' : ''}`;
 
   MailApp.sendEmail({
     to: recipients,
     subject,
-    htmlBody: htmlBodyDivs.join('')
+    htmlBody
   });
 }
