@@ -78,10 +78,28 @@ function checkCollectionDays(propertyId) {
 
       const formattedDate = Utilities.formatDate(nextCollectionDate, 'GMT', 'dd/MM/yyyy');
 
+      let lastFormatted = 'N/A';
+      if (lastSchedule) {
+        const lastDateStr = lastSchedule.currentScheduledDate || lastSchedule.originalScheduledDate;
+        let lastStatus = lastSchedule.coreStateName || lastSchedule.state;
+
+        if (lastStatus && lastStatus.includes(': ')) {
+          lastStatus = lastStatus.split(': ').pop();
+        }
+
+        if (lastDateStr) {
+          const lastDate = new Date(lastDateStr);
+          const formattedLastDate = Utilities.formatDate(lastDate, 'GMT', 'dd/MM/yyyy');
+          lastFormatted = `${formattedLastDate} (${lastStatus})`;
+        } else {
+          lastFormatted = lastStatus;
+        }
+      }
+
       result.services.push({
         serviceName: service.serviceName,
         serviceIcon: getServiceIcon(service.serviceName),
-        last: lastSchedule ? lastSchedule.state || lastSchedule.coreStateName : 'N/A',
+        last: lastFormatted,
         next: formattedDate,
         nextReadable: delay === 1 ? 'tomorrow' : `in ${delay} days`,
         sign: delay === 1 ? '✅' : '❌'
